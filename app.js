@@ -319,12 +319,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // CSVデータ生成
             const csvContent = generateCSV(processedData);
             
-            // ファイルダウンロード
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            // BOM付きでファイルダウンロード（Excel文字化け対策）
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', `推敲済み所見_${new Date().toISOString().split('T')[0]}.csv`);
+            // ファイル名を安全にエンコード
+            const dateStr = new Date().toISOString().split('T')[0];
+            const fileName = `suikou_shoken_${dateStr}.csv`; // 英数字ファイル名で安全性確保
+            link.setAttribute('download', fileName);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -339,21 +343,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // CSV生成
+    // CSV生成（日本語文字化け対策）
     function generateCSV(data) {
         const headers = ['学年・組・番号', '教科・項目', '修正前', '修正後', '適用ルール'];
         const rows = data.map(item => [
-            item.studentName,
-            item.subject,
-            item.originalText,
-            item.revisedText,
-            item.revisionNotes
+            item.studentName || '',
+            item.subject || '',
+            item.originalText || '',
+            item.revisedText || '',
+            item.revisionNotes || ''
         ]);
         
         const csvRows = [headers, ...rows];
         return csvRows.map(row => 
-            row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(',')
-        ).join('\n');
+            row.map(field => {
+                // 安全な文字列変換と特殊文字エスケープ
+                const fieldStr = String(field)
+                    .replace(/"/g, '""')  // ダブルクォートのエスケープ
+                    .replace(/\r\n/g, ' ') // 改行を空白に置換
+                    .replace(/\r/g, ' ')   // CR を空白に置換  
+                    .replace(/\n/g, ' ');  // LF を空白に置換
+                return `"${fieldStr}"`; 
+            }).join(',')
+        ).join('\r\n');  // Windows標準の改行コード
     }
 
     // HTML エスケープ
