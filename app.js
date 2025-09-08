@@ -144,11 +144,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const headers = fileData[0];
         const rows = fileData.slice(1);
         
-        // ヘッダー検索
+        // ヘッダー検索（個人情報保護対応）
         const gradeIndex = findHeaderIndex(headers, ['学年']);
         const classIndex = findHeaderIndex(headers, ['組', 'クラス']);  
         const numberIndex = findHeaderIndex(headers, ['番号', '出席番号']);
-        const nameIndex = findHeaderIndex(headers, ['名前', '氏名']);
+        // 名前列は個人情報保護のため使用しない
         
         // 所見列の検索（複数列対応）
         const commentIndices = [];
@@ -169,7 +169,11 @@ document.addEventListener('DOMContentLoaded', function() {
         rows.forEach((row, rowIndex) => {
             if (!row || row.length === 0) return;
             
-            const studentName = row[nameIndex] || `生徒${rowIndex + 1}`;
+            // 個人情報保護：学年・組・番号で識別
+            const grade = row[gradeIndex] || '';
+            const classNum = row[classIndex] || '';  
+            const number = row[numberIndex] || (rowIndex + 1);
+            const studentId = `${grade}年${classNum}組${number}番`;
             
             commentIndices.forEach((commentIndex, commentIndexNum) => {
                 const originalComment = row[commentIndex];
@@ -179,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const changes = getChangeHistory(originalComment, revisedComment);
                 
                 results.push({
-                    studentName: studentName,
+                    studentName: studentId,
                     subject: `所見${commentIndices.length > 1 ? commentIndexNum + 1 : ''}`,
                     originalText: originalComment,
                     revisedText: revisedComment,
@@ -225,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <table class="min-w-full bg-white border border-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">児童名</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">学年・組・番号</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">教科</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">修正前後比較</th>
                         </tr>
@@ -312,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // CSV生成
     function generateCSV(data) {
-        const headers = ['児童名', '教科・項目', '修正前', '修正後', '適用ルール'];
+        const headers = ['学年・組・番号', '教科・項目', '修正前', '修正後', '適用ルール'];
         const rows = data.map(item => [
             item.studentName,
             item.subject,
