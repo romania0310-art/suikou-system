@@ -108,18 +108,35 @@ document.addEventListener('DOMContentLoaded', function() {
                         const workbook = XLSX.read(e.target.result, { type: 'array' });
                         const sheetName = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[sheetName];
-                        data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        // セルの値を安全に文字列化
+                        data = rawData.map(row => 
+                            row.map(cell => {
+                                if (cell == null || cell === undefined) return '';
+                                return String(cell).trim();
+                            })
+                        );
                     } else {
                         // CSVファイル処理
                         const text = e.target.result;
                         data = text.split('\n').map(row => {
-                            return row.split(',').map(cell => 
-                                cell.trim().replace(/^"|"$/g, '')
-                            );
+                            return row.split(',').map(cell => {
+                                if (cell == null || cell === undefined) return '';
+                                return String(cell).trim().replace(/^"|"$/g, '');
+                            });
                         });
                     }
                     
-                    resolve(data.filter(row => row.some(cell => cell && cell.trim())));
+                    // 空行を除外（安全な文字列チェック）
+                    const filteredData = data.filter(row => 
+                        row.some(cell => {
+                            if (cell == null || cell === undefined) return false;
+                            const cellStr = String(cell).trim();
+                            return cellStr !== '';
+                        })
+                    );
+                    resolve(filteredData);
                 } catch (error) {
                     reject(new Error('ファイル読み込みエラー: ' + error.message));
                 }
@@ -150,12 +167,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const numberIndex = findHeaderIndex(headers, ['番号', '出席番号']);
         // 名前列は個人情報保護のため使用しない
         
-        // 所見列の検索（複数列対応）
+        // 所見列の検索（複数列対応、安全な文字列処理）
         const commentIndices = [];
         for (let i = 0; i < headers.length; i++) {
-            const header = headers[i] ? headers[i].toString().toLowerCase() : '';
-            if (header.includes('所見') || header.includes('コメント') || 
-                header.includes('評価') || header.includes('備考')) {
+            const header = headers[i];
+            if (header == null || header === undefined) continue;
+            
+            const headerStr = String(header).toLowerCase();
+            if (headerStr.includes('所見') || headerStr.includes('コメント') || 
+                headerStr.includes('評価') || headerStr.includes('備考')) {
                 commentIndices.push(i);
             }
         }
@@ -169,23 +189,26 @@ document.addEventListener('DOMContentLoaded', function() {
         rows.forEach((row, rowIndex) => {
             if (!row || row.length === 0) return;
             
-            // 個人情報保護：学年・組・番号で識別
-            const grade = row[gradeIndex] || '';
-            const classNum = row[classIndex] || '';  
-            const number = row[numberIndex] || (rowIndex + 1);
+            // 個人情報保護：学年・組・番号で識別（安全な文字列処理）
+            const grade = row[gradeIndex] ? String(row[gradeIndex]).trim() : '';
+            const classNum = row[classIndex] ? String(row[classIndex]).trim() : '';  
+            const number = row[numberIndex] ? String(row[numberIndex]).trim() : String(rowIndex + 1);
             const studentId = `${grade}年${classNum}組${number}番`;
             
             commentIndices.forEach((commentIndex, commentIndexNum) => {
                 const originalComment = row[commentIndex];
-                if (!originalComment || originalComment.trim() === '') return;
+                if (!originalComment) return;
                 
-                const revisedComment = applyAyumiRules(originalComment);
-                const changes = getChangeHistory(originalComment, revisedComment);
+                const commentStr = String(originalComment).trim();
+                if (commentStr === '') return;
+                
+                const revisedComment = applyAyumiRules(commentStr);
+                const changes = getChangeHistory(commentStr, revisedComment);
                 
                 results.push({
                     studentName: studentId,
                     subject: `所見${commentIndices.length > 1 ? commentIndexNum + 1 : ''}`,
-                    originalText: originalComment,
+                    originalText: commentStr,
                     revisedText: revisedComment,
                     revisionNotes: changes.length > 0 ? changes.join(', ') : 'あゆみ表記ルールに基づく推敲'
                 });
@@ -199,12 +222,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return results;
     }
 
-    // ヘッダー検索
+    // ヘッダー検索（安全な文字列処理）
     function findHeaderIndex(headers, searchTerms) {
         for (const term of searchTerms) {
-            const index = headers.findIndex(header => 
-                header && header.toString().toLowerCase().includes(term.toLowerCase())
-            );
+            const index = headers.findIndex(header => {
+                if (header == null || header === undefined) return false;
+                const headerStr = String(header).toLowerCase();
+                return headerStr.includes(term.toLowerCase());
+            });
             if (index !== -1) return index;
         }
         return -1;
