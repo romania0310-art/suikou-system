@@ -80,7 +80,17 @@ const finalAdjustmentRules = [
   { pattern: /。。/g, replacement: '。', description: '句読点の重複除去' },
   { pattern: /  /g, replacement: ' ', description: '余分な空白の除去' },
   { pattern: /多くがんばっ、/g, replacement: '多く意欲的に取り組み、', description: '表現の自然化' },
-  { pattern: /取り組んでい、/g, replacement: '取り組んでおり、', description: '表現の自然化' }
+  { pattern: /取り組んでい、/g, replacement: '取り組んでおり、', description: '表現の自然化' },
+  
+  // 文末統一ルール（「です・ます調」統一）
+  { pattern: /につなげた([。、])/g, replacement: 'につなげました$1', description: '文末統一：「～につなげた」→「～につなげました」' },
+  { pattern: /頑張って([。、])/g, replacement: '頑張ってください$1', description: '文末統一：「～頑張って」→「～頑張ってください」' },
+  { pattern: /できた([。、])/g, replacement: 'できました$1', description: '文末統一：「～できた」→「～できました」' },
+  { pattern: /した([。、])/g, replacement: 'しました$1', description: '文末統一：「～した」→「～しました」' },
+  { pattern: /取り組んだ([。、])/g, replacement: '取り組みました$1', description: '文末統一：「～取り組んだ」→「～取り組みました」' },
+  { pattern: /発表した([。、])/g, replacement: '発表しました$1', description: '文末統一：「～発表した」→「～発表しました」' },
+  { pattern: /頑張った([。、])/g, replacement: '頑張りました$1', description: '文末統一：「～頑張った」→「～頑張りました」' },
+  { pattern: /学習した([。、])/g, replacement: '学習しました$1', description: '文末統一：「～学習した」→「～学習しました」' }
 ];
 
 // すべてのルールをまとめた配列
