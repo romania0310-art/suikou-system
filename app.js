@@ -364,22 +364,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // CSV生成（横並び表示対応、日本語文字化け対策）
+    // CSV生成（校務システム対応シンプル形式、日本語文字化け対策）
     function generateCSV(data) {
-        const headers = ['学年・組・番号', '教科・項目', '修正前', '修正後', '適用ルール'];
+        const headers = ['学年', '組', '番号', '所見１（推敲済）', '所見２（推敲済）'];
         const rows = [];
         
-        // 横並び表示用データを縦方向のCSV形式に展開
+        // 学生ごとに横並び形式で1行にまとめる（校務システム対応）
         data.forEach(student => {
+            // 学年・組・番号を分解（例：3年1組5番 → 3, 1, 5）
+            const studentName = student.studentName || '';
+            const match = studentName.match(/(\d+)年(\d+)組(\d+)番/);
+            
+            const grade = match ? match[1] : '';
+            const classNum = match ? match[2] : '';
+            const number = match ? match[3] : '';
+            
+            // 所見を所見１、所見２に分類
+            let comment1 = '';
+            let comment2 = '';
+            
             student.comments.forEach(comment => {
-                rows.push([
-                    student.studentName || '',
-                    comment.subject || '',
-                    comment.originalText || '',
-                    comment.revisedText || '',
-                    comment.revisionNotes || ''
-                ]);
+                if (comment.subject.includes('1') || comment.subject === '所見' && comment1 === '') {
+                    comment1 = comment.revisedText || '';
+                } else if (comment.subject.includes('2') || comment.subject === '所見' && comment1 !== '') {
+                    comment2 = comment.revisedText || '';
+                }
             });
+            
+            // 所見が1つしかない場合は所見１に配置
+            if (student.comments.length === 1 && comment1 === '' && comment2 === '') {
+                comment1 = student.comments[0].revisedText || '';
+            }
+            
+            rows.push([grade, classNum, number, comment1, comment2]);
         });
         
         const csvRows = [headers, ...rows];
