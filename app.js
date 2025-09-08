@@ -186,6 +186,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const results = [];
         
+        // 横並び表示用：学生ごとにグループ化
+        const studentGroups = {};
+        
         rows.forEach((row, rowIndex) => {
             if (!row || row.length === 0) return;
             
@@ -194,6 +197,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const classNum = row[classIndex] ? String(row[classIndex]).trim() : '';  
             const number = row[numberIndex] ? String(row[numberIndex]).trim() : String(rowIndex + 1);
             const studentId = `${grade}年${classNum}組${number}番`;
+            
+            // 学生ごとの所見をまとめる
+            if (!studentGroups[studentId]) {
+                studentGroups[studentId] = {
+                    studentName: studentId,
+                    comments: []
+                };
+            }
             
             commentIndices.forEach((commentIndex, commentIndexNum) => {
                 const originalComment = row[commentIndex];
@@ -205,14 +216,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const revisedComment = applyAyumiRules(commentStr);
                 const changes = getChangeHistory(commentStr, revisedComment);
                 
-                results.push({
-                    studentName: studentId,
+                studentGroups[studentId].comments.push({
                     subject: `所見${commentIndices.length > 1 ? commentIndexNum + 1 : ''}`,
                     originalText: commentStr,
                     revisedText: revisedComment,
                     revisionNotes: changes.length > 0 ? changes.join(', ') : 'あゆみ表記ルールに基づく推敲'
                 });
             });
+        });
+        
+        // 横並び表示用のresults配列を生成
+        Object.values(studentGroups).forEach(student => {
+            results.push(student);
         });
         
         if (results.length === 0) {
@@ -247,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
         progressText.textContent = text;
     }
 
-    // 結果表示
+    // 結果表示（横並び表示対応）
     function displayResults(results) {
         const tableHtml = `
             <div class="overflow-x-auto">
@@ -255,39 +270,44 @@ document.addEventListener('DOMContentLoaded', function() {
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">学年・組・番号</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">教科</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">修正前後比較</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">所見の修正前後比較（横並び表示）</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        ${results.map(result => `
+                        ${results.map(student => `
                             <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(result.studentName)}</td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(result.subject)}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-top">${escapeHtml(student.studentName)}</td>
                                 <td class="px-4 py-4 text-sm text-gray-900">
-                                    <div class="space-y-3">
-                                        <div class="bg-red-50 p-3 rounded-lg border-l-4 border-red-400">
-                                            <div class="text-red-800 font-semibold text-xs uppercase mb-1">修正前</div>
-                                            <div class="text-red-700">${escapeHtml(result.originalText)}</div>
-                                        </div>
-                                        <div class="bg-green-50 p-3 rounded-lg border-l-4 border-green-400">
-                                            <div class="text-green-800 font-semibold text-xs uppercase mb-1">修正後</div>
-                                            <div class="text-green-700">${escapeHtml(result.revisedText)}</div>
-                                        </div>
-                                        ${result.originalText !== result.revisedText ? 
-                                            `<div class="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
-                                                <div class="text-blue-800 font-semibold text-xs uppercase mb-1">
-                                                    <i class="fas fa-list mr-1"></i>適用された表記ルール
+                                    <div class="grid grid-cols-1 lg:grid-cols-${Math.min(student.comments.length, 3)} gap-4">
+                                        ${student.comments.map(comment => `
+                                            <div class="border rounded-lg p-3 space-y-3">
+                                                <div class="text-center font-medium text-gray-700 bg-gray-100 py-1 px-2 rounded text-xs">
+                                                    ${escapeHtml(comment.subject)}
                                                 </div>
-                                                <div class="text-blue-700 text-xs">
-                                                    ${result.revisionNotes}
+                                                <div class="bg-red-50 p-3 rounded-lg border-l-4 border-red-400">
+                                                    <div class="text-red-800 font-semibold text-xs uppercase mb-1">修正前</div>
+                                                    <div class="text-red-700 text-sm">${escapeHtml(comment.originalText)}</div>
                                                 </div>
+                                                <div class="bg-green-50 p-3 rounded-lg border-l-4 border-green-400">
+                                                    <div class="text-green-800 font-semibold text-xs uppercase mb-1">修正後</div>
+                                                    <div class="text-green-700 text-sm">${escapeHtml(comment.revisedText)}</div>
+                                                </div>
+                                                ${comment.originalText !== comment.revisedText ? 
+                                                    `<div class="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                                                        <div class="text-blue-800 font-semibold text-xs uppercase mb-1">
+                                                            <i class="fas fa-list mr-1"></i>適用ルール
+                                                        </div>
+                                                        <div class="text-blue-700 text-xs">
+                                                            ${escapeHtml(comment.revisionNotes)}
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex items-center justify-center text-orange-600 text-xs mt-2">
+                                                        <i class="fas fa-edit mr-1"></i>推敲済み
+                                                    </div>` : 
+                                                    '<div class="flex items-center justify-center text-gray-500 text-xs mt-1"><i class="fas fa-check mr-1"></i>修正不要</div>'
+                                                }
                                             </div>
-                                            <div class="flex items-center text-orange-600 text-xs mt-2">
-                                                <i class="fas fa-edit mr-1"></i>推敲済み
-                                            </div>` : 
-                                            '<div class="flex items-center text-gray-500 text-xs mt-1"><i class="fas fa-check mr-1"></i>修正不要</div>'
-                                        }
+                                        `).join('')}
                                     </div>
                                 </td>
                             </tr>
@@ -297,8 +317,9 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="mt-4 text-sm text-gray-600">
                 <i class="fas fa-info-circle mr-2"></i>
-                処理件数: ${results.length}件 | 
-                修正件数: ${results.filter(r => r.originalText !== r.revisedText).length}件
+                処理学生数: ${results.length}名 | 
+                総所見数: ${results.reduce((sum, student) => sum + student.comments.length, 0)}件 | 
+                修正件数: ${results.reduce((sum, student) => sum + student.comments.filter(c => c.originalText !== c.revisedText).length, 0)}件
             </div>
         `;
 
@@ -343,16 +364,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // CSV生成（日本語文字化け対策）
+    // CSV生成（横並び表示対応、日本語文字化け対策）
     function generateCSV(data) {
         const headers = ['学年・組・番号', '教科・項目', '修正前', '修正後', '適用ルール'];
-        const rows = data.map(item => [
-            item.studentName || '',
-            item.subject || '',
-            item.originalText || '',
-            item.revisedText || '',
-            item.revisionNotes || ''
-        ]);
+        const rows = [];
+        
+        // 横並び表示用データを縦方向のCSV形式に展開
+        data.forEach(student => {
+            student.comments.forEach(comment => {
+                rows.push([
+                    student.studentName || '',
+                    comment.subject || '',
+                    comment.originalText || '',
+                    comment.revisedText || '',
+                    comment.revisionNotes || ''
+                ]);
+            });
+        });
         
         const csvRows = [headers, ...rows];
         return csvRows.map(row => 
