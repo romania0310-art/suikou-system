@@ -1,4 +1,4 @@
-// あゆみ所見等 自動推敲システム - GitHub Pages版（クライアントサイド）
+// あゆみ所見等 自動校正システム - GitHub Pages版（クライアントサイド）
 
 let processedData = [];
 
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clearFileBtn.classList.add('hidden');
         resultsSection.classList.add('hidden');
         uploadBtn.disabled = false;
-        uploadBtn.textContent = 'アップロード・推敲開始';
+        uploadBtn.textContent = 'アップロード・校正開始';
         downloadBtn.classList.add('hidden');
         processedData = [];
     });
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateProgress(25, 'ファイルを読み込み中...');
             
             const fileData = await readFile(file);
-            updateProgress(50, '推敲処理中...');
+            updateProgress(50, '校正処理中...');
             
             const results = processAyumiData(fileData);
             updateProgress(75, '結果を表示中...');
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('ファイル処理に失敗しました: ' + error.message);
         } finally {
             uploadBtn.disabled = false;
-            uploadBtn.textContent = 'アップロード・推敲開始';
+            uploadBtn.textContent = 'アップロード・校正開始';
         }
     });
 
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     subject: `所見${commentIndices.length > 1 ? commentIndexNum + 1 : ''}`,
                     originalText: commentStr,
                     revisedText: revisedComment,
-                    revisionNotes: changes.length > 0 ? changes.join(', ') : 'あゆみ表記ルールに基づく推敲'
+                    revisionNotes: changes.length > 0 ? changes.join(', ') : 'あゆみ表記ルールに基づく校正'
                 });
             });
         });
@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                         </div>
                                                     </div>
                                                     <div class="flex items-center justify-center text-orange-600 text-xs mt-2">
-                                                        <i class="fas fa-edit mr-1"></i>推敲済み
+                                                        <i class="fas fa-edit mr-1"></i>校正済み
                                                     </div>` : 
                                                     '<div class="flex items-center justify-center text-gray-500 text-xs mt-1"><i class="fas fa-check mr-1"></i>修正不要</div>'
                                                 }
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
             link.setAttribute('href', url);
             // ファイル名を安全にエンコード
             const dateStr = new Date().toISOString().split('T')[0];
-            const fileName = `suikou_shoken_${dateStr}.csv`; // 英数字ファイル名で安全性確保
+            const fileName = `kousei_shoken_${dateStr}.csv`; // 英数字ファイル名で安全性確保
             link.setAttribute('download', fileName);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // CSV生成（校務システム対応シンプル形式、日本語文字化け対策）
     function generateCSV(data) {
-        const headers = ['学年', '組', '番号', '所見１（推敲済）', '所見２（推敲済）'];
+        const headers = ['学年', '組', '番号', '所見１（校正済）', '所見２（校正済）'];
         const rows = [];
         
         // 学生ごとに横並び形式で1行にまとめる（校務システム対応）

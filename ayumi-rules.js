@@ -102,7 +102,7 @@ const allConversionRules = [
   ...finalAdjustmentRules
 ];
 
-// 推敲処理のメイン関数
+// 校正処理のメイン関数
 function applyAyumiRules(text) {
   let result = text.trim();
   
@@ -114,7 +114,7 @@ function applyAyumiRules(text) {
   return result.trim();
 }
 
-// 推敲の変更履歴を取得する関数
+// 校正の変更履歴を取得する関数
 function getChangeHistory(originalText, revisedText) {
   const changes = [];
   let currentText = originalText;
